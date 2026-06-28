@@ -1,0 +1,8 @@
+# Dataset config for YOLO models
+
+train: data/processed/images/train
+val: data/processed/images/val
+test: data/processed/images/test
+
+nc: 0
+names: []

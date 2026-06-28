@@ -1,0 +1,12 @@
+txt
+numpy
+pandas
+matplotlib
+opencv-python
+scikit-learn
+torch
+torchvision
+ultralytics
+pyyaml
+tqdm
+jupyter
