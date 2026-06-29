@@ -1,8 +1,37 @@
-# Dataset config for YOLO models
-
-train: data/processed/images/train
-val: data/processed/images/val
-test: data/processed/images/test
-
-nc: 0
-names: []
+train: data\processed\images\train
+val: data\processed\images\val
+test: data\processed\images\test
+nc: 32
+names:
+- heineken_text
+- cocacola
+- pepsi
+- fedex
+- starbucks
+- bmw
+- dhl
+- nivea
+- corona
+- milka
+- ferrari
+- shell
+- carlsberg
+- apple
+- nike
+- erdinger
+- chimay
+- kia
+- aldi
+- paulaner
+- stellaartois
+- redbull
+- mcdonalds
+- volkswagen
+- hp
+- ups
+- burgerking
+- lv
+- guinness
+- texaco
+- colgate
+- rittersport
