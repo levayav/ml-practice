@@ -5,6 +5,8 @@ import fiftyone as fo
 from fiftyone import ViewField as F
 import yaml
 
+import random
+
 
 CLASSES_PATH = Path("configs/classes.txt")
 OUTPUT_DIR = Path("data/processed")
@@ -57,46 +59,64 @@ def main():
     dataset = fo.Dataset.from_dir(dataset_dir=str(DATASET_DIR), dataset_type=fo.types.FiftyOneDataset)
 
     print("Filtering supervised subset")
-    view = dataset.match(F("ground_truth") != "None")
+    view = dataset.match(F("ground_truth") != None)
+
+    train_samples = []
+    test_samples = []
+
+    for sample in view:
+        if sample.split == "train":
+            train_samples.append(sample)
+        elif sample.split == "test":
+            test_samples.append(sample)
+
+    random.seed(42)
+    random.shuffle(train_samples)
+
+    val_size = int(len(train_samples) * 0.2)
+
+    val_samples = train_samples[:val_size]
+    train_samples = train_samples[val_size:]
 
     copied_images = 0
     written_labels = 0
 
-    for sample in view:
-        split = get_split(sample)
-        detections = sample.ground_truth.detections if sample.ground_truth else []
+    for split_name, samples in [('train', train_samples), ('val', val_samples), ('test', test_samples)]:
+        for sample in samples:
+            split = split_name
+            detections = sample.ground_truth.detections if sample.ground_truth else []
 
-        yolo_lines = []
-        for det in detections:
-            if det.label not in class_to_id:
+            yolo_lines = []
+            for det in detections:
+                if det.label not in class_to_id:
+                    continue
+
+                class_id = class_to_id[det.label]
+                x_center, y_center, w, h = convert_bbox_to_yolo(det.bounding_box)
+
+                # Simple validation: skip obviously broken boxes
+                if w <= 0 or h <= 0:
+                    continue
+                if not (0 <= x_center <= 1 and 0 <= y_center <= 1):
+                    continue
+
+                yolo_lines.append(
+                    f"{class_id} {x_center:.6f} {y_center:.6f} {w:.6f} {h:.6f}"
+                )
+
+            if not yolo_lines:
                 continue
 
-            class_id = class_to_id[det.label]
-            x_center, y_center, w, h = convert_bbox_to_yolo(det.bounding_box)
+            src_image = Path(sample.filepath)
+            dst_image = OUTPUT_DIR / "images" / split / src_image.name
+            dst_label = OUTPUT_DIR / "labels" / split / f"{src_image.stem}.txt"
 
-            # Simple validation: skip obviously broken boxes
-            if w <= 0 or h <= 0:
-                continue
-            if not (0 <= x_center <= 1 and 0 <= y_center <= 1):
-                continue
+            shutil.copy2(src_image, dst_image)
+            with open(dst_label, "w", encoding="utf-8") as f:
+                f.write("\n".join(yolo_lines))
 
-            yolo_lines.append(
-                f"{class_id} {x_center:.6f} {y_center:.6f} {w:.6f} {h:.6f}"
-            )
-
-        if not yolo_lines:
-            continue
-
-        src_image = Path(sample.filepath)
-        dst_image = OUTPUT_DIR / "images" / split / src_image.name
-        dst_label = OUTPUT_DIR / "labels" / split / f"{src_image.stem}.txt"
-
-        shutil.copy2(src_image, dst_image)
-        with open(dst_label, "w", encoding="utf-8") as f:
-            f.write("\n".join(yolo_lines))
-
-        copied_images += 1
-        written_labels += 1
+            copied_images += 1
+            written_labels += 1
 
     data_yaml = {
         "train": str(OUTPUT_DIR / "images" / "train"),
