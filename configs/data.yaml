@@ -1,3 +1,5 @@
+path: .
+
 train: data\processed\images\train
 val: data\processed\images\val
 test: data\processed\images\test

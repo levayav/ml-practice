@@ -1,0 +1,2 @@
+model,epochs,imgsz,batch,precision,recall,map50,f1,notes
+Yolov8n,10,640,8,0.82636,0.68739,0.76506,0.56638,0.75049,baseline
